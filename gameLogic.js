@@ -110,13 +110,23 @@ export function isJokerCard(card, wildJokerRank) {
 }
 
 /**
+ * Determines whether a card is a printed joker (not a wild card).
+ *
+ * @param {Object} card - Card object to test
+ * @returns {boolean} True if card is a printed joker
+ */
+export function isPrintedJoker(card) {
+  if (!card) return false;
+  return Boolean(card.isJoker || card.displayName === 'Printed Joker');
+}
+
+/**
  * Validates whether a group of cards forms a valid Pure Sequence in Indian Rummy.
  * Rules:
  * a. groupOfCards.length must be >= 3.
  * b. All cards must have the exact same suit.
- * c. None of the cards can be a Joker (neither printed nor wild joker rank).
- * d. None of the cards can have the wild joker rank (cannot use wild joker as a wild card here).
- * e. The cards must be consecutive in rank. Sort them by rank (A=1, J=11, Q=12, K=13) or high Ace (Q-K-A).
+ * c. None of the cards can be a printed Joker. Cards matching the wild joker rank count as natural cards in their own suit and natural sequence position.
+ * d. The cards must be consecutive in rank. Sort them by rank (A=1, J=11, Q=12, K=13) or high Ace (Q-K-A).
  *
  * @param {Array} groupOfCards - Array of card objects in the group.
  * @param {Object|string|null} wildJokerRank - The wild joker rank or open joker card object.
@@ -127,18 +137,10 @@ export function isPureSequence(groupOfCards, wildJokerRank) {
     return false;
   }
 
-  const wildRank = getWildJokerRank(wildJokerRank);
-
-  // c. None of the cards can be a Joker. Also ensure valid card objects.
+  // c. None of the cards can be a printed Joker. Also ensure valid card objects.
   for (const card of groupOfCards) {
-    if (!card || card.isJoker || card.displayName === 'Printed Joker' || !card.suit || !card.rank) {
+    if (!card || isPrintedJoker(card) || !card.suit || !card.rank) {
       return false;
-    }
-    // d. None of the cards can have the wild joker rank
-    if (wildRank) {
-      if (card.rank === wildRank) return false;
-      if (wildRank === 'Ace' && card.rank === 'A') return false;
-      if (wildRank === 'A' && card.rank === 'Ace') return false;
     }
   }
 
@@ -385,7 +387,7 @@ export function findWinningGrouping(cards13, wildJokerRank, timeBudgetMs = Infin
   const candidatePureSeqs = [];
 
   for (const suit of suits) {
-    const suitCards = cards13.filter(c => c && !isJokerCard(c, wildRank) && c.suit === suit && c.rank);
+    const suitCards = cards13.filter(c => c && !isPrintedJoker(c) && c.suit === suit && c.rank);
     if (suitCards.length < 3) continue;
 
     for (const sz of [5, 4, 3]) {
@@ -502,7 +504,7 @@ export function autoGroupHand(hand, wildJokerRank, timeBudgetMs = Infinity) {
   const suits = ['Spades', 'Hearts', 'Clubs', 'Diamonds'];
   const candidatePure = [];
   for (const suit of suits) {
-    const suitCards = hand.filter(c => c && !isJokerCard(c, wildRank) && c.suit === suit && c.rank);
+    const suitCards = hand.filter(c => c && !isPrintedJoker(c) && c.suit === suit && c.rank);
     if (suitCards.length < 3) continue;
     for (const sz of [5, 4, 3]) {
       if (suitCards.length >= sz) {
@@ -666,7 +668,7 @@ export function findPureSequences(hand, wildJokerRank) {
   const candidates = [];
 
   for (const suit of ['Spades', 'Hearts', 'Clubs', 'Diamonds']) {
-    const suitCards = hand.filter(c => c && !isJokerCard(c, wildRank) && c.suit === suit && c.rank);
+    const suitCards = hand.filter(c => c && !isPrintedJoker(c) && c.suit === suit && c.rank);
     for (const sz of [5, 4, 3]) {
       if (suitCards.length < sz) continue;
       for (const comb of getCombinations(suitCards, sz)) {
@@ -910,6 +912,7 @@ export default {
   getOpenJoker,
   getWildJokerRank,
   isJokerCard,
+  isPrintedJoker,
   isPureSequence,
   isImpureSequence,
   isSet,
