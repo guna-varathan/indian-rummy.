@@ -264,11 +264,19 @@ select option { background-color: #002b00; color: #ffffff; }
 /* Row 4: action buttons */
 .action-buttons {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   flex-wrap: nowrap;
   gap: 10px;
   padding: 6px 8px 0;
+  width: 100%;
+}
+#declareBtn {
+  margin-left: auto;
+}
+#declareBtn[style*="display: none"] + #discardBtn,
+#declareBtn[style*="display:none"] + #discardBtn {
+  margin-left: auto;
 }
 
 .primary-btn {
