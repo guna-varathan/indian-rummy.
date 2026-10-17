@@ -176,6 +176,18 @@ const baseHand = [c4H, c5H, c6H, c7S, c8S, c9S, c10C, cJC, cQC];
   assert('Test 12: Serialized and restored state preserves card groups and order', sameLengths && allGroupsMatch);
 }
 
+// Test 13: a lone card dropped in the gap right after its OWN group stays where it was
+{
+  const a = makeCard('4', 'Hearts', 1), b = makeCard('5', 'Hearts', 1);
+  const lone = makeCard('7', 'Spades', 2);
+  const c = makeCard('8', 'Spades', 3), d = makeCard('9', 'Spades', 3);
+  const hand = [a, b, lone, c, d];
+  const res = moveCardsInHand(hand, lone.id, { type: 'new_group', relativeGroupId: 2, position: 'after' });
+  const g = id => res.hand.find(x => x.id === id).group;
+  assert('Test 13: lone card stays between group 1 and group 3 (becomes group 2)',
+    res.success && g(a.id) === 1 && g(lone.id) === 2 && g(c.id) === 3 && g(d.id) === 3);
+}
+
 console.log(`\nResults: ${passed} passed, ${failed} failed`);
 if (failed > 0) {
   if (typeof process !== 'undefined' && process.exit) {

@@ -845,10 +845,10 @@ export function moveCardsInHand(hand, cardsToMove, target) {
     if (target.position === 'start') {
       newGroupIndex = 0;
     } else if (target.relativeGroupId !== undefined) {
+      // Works even when the reference group disappeared because the moved card was its only card
       const relId = Number(target.relativeGroupId);
-      const relIdx = remainingGroupIds.indexOf(relId);
-      if (relIdx !== -1) {
-        newGroupIndex = target.position === 'before' ? relIdx : relIdx + 1;
+      if (!isNaN(relId)) {
+        newGroupIndex = remainingGroupIds.filter(id => (target.position === 'before' ? id < relId : id <= relId)).length;
       }
     }
 

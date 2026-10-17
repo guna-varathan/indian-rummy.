@@ -1148,6 +1148,15 @@ function createDragGhost(movingCards, x, y) {
 }
 
 /**
+ * Returns "group X of Y" using the same numbering as the aria-labels of the groups
+ * (position among the groups on screen, not the internal group id).
+ */
+function describeGroupPosition(hand, groupId) {
+  const ids = [...new Set(hand.map(c => (typeof c.group === 'number' ? c.group : 0)))].sort((a, b) => a - b);
+  return 'group ' + (ids.indexOf(groupId) + 1) + ' of ' + ids.length;
+}
+
+/**
  * Renders the player's cards into #playerHand grouped by their group property
  * inside <div class="card-group" role="group" aria-label="Card group"> with full
  * keyboard navigation, accessible Alt+Arrow drag-and-drop, selection toggling,
@@ -1210,7 +1219,7 @@ function renderPlayerHand(hand) {
           const groupCards = currentUserHand.filter(c => c.group === res.targetGroupId);
           const groupCardNames = groupCards.map(c => c.displayName).join(', ');
 
-          announce('Moved to group ' + res.targetGroupId + '. Cards in this group: ' + groupCardNames);
+          announce('Moved to ' + describeGroupPosition(currentUserHand, res.targetGroupId) + '. Cards in this group: ' + groupCardNames);
           renderPlayerHand(currentUserHand);
           saveGameState();
 
@@ -1367,7 +1376,7 @@ function renderPlayerHand(hand) {
                 const groupCardNames = groupCards.map(c => c.displayName).join(', ');
                 const movedCardNames = movingCards.map(c => c.displayName).join(', ');
 
-                announce('Moved ' + movedCardNames + ' to group ' + res.targetGroupId + '. Cards in this group: ' + groupCardNames);
+                announce('Moved ' + movedCardNames + ' to ' + describeGroupPosition(currentUserHand, res.targetGroupId) + '. Cards in this group: ' + groupCardNames);
                 renderPlayerHand(currentUserHand);
                 saveGameState();
 
@@ -1451,9 +1460,10 @@ function renderPlayerHand(hand) {
           const groupCards = currentUserHand.filter(c => c.group === newGroup);
           const groupCardNames = groupCards.map(c => c.displayName).join(', ');
 
-          announce('Moved to group ' + newGroup + '. Cards in this group: ' + groupCardNames);
+          announce('Moved to ' + describeGroupPosition(currentUserHand, newGroup) + '. Cards in this group: ' + groupCardNames);
 
           renderPlayerHand(currentUserHand);
+          saveGameState();
 
           const elToFocus = document.querySelector(`[data-card-id="${savedCardId}"]`);
           if (elToFocus) {
@@ -1477,9 +1487,10 @@ function renderPlayerHand(hand) {
           const groupCards = currentUserHand.filter(c => c.group === newGroup);
           const groupCardNames = groupCards.map(c => c.displayName).join(', ');
 
-          announce('Moved to group ' + newGroup + '. Cards in this group: ' + groupCardNames);
+          announce('Moved to ' + describeGroupPosition(currentUserHand, newGroup) + '. Cards in this group: ' + groupCardNames);
 
           renderPlayerHand(currentUserHand);
+          saveGameState();
 
           const elToFocus = document.querySelector(`[data-card-id="${savedCardId}"]`);
           if (elToFocus) {
