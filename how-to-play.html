@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" class="guide-html">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Learn how to play 13-Card Indian Rummy. Official rules for Pure Sequences, Impure Sequences, Sets, Jokers, and winning declarations.">
+  <title>How to Play Indian Rummy - Rules &amp; Guide</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="guide-page">
+  <div class="guide-container">
+    <header class="guide-header">
+      <div class="guide-header-top">
+        <a href="index.html" class="primary-btn">Back to Game</a>
+      </div>
+      <h1 class="guide-title">How to Play Indian Rummy</h1>
+      <p class="guide-subtitle">A comprehensive, accessible guide to the rules, card combinations, and winning declarations in 13-card Indian Rummy.</p>
+    </header>
+
+    <main id="main-content" class="guide-content">
+      <!-- 1. Objective -->
+      <section id="objective" class="guide-section" aria-labelledby="heading-objective">
+        <h2 id="heading-objective">1. Objective of the Game</h2>
+        <p>In 13-card Indian Rummy, each player is dealt 13 cards. The main objective is to arrange all 13 cards in your hand into valid combinations: <strong>Sequences</strong> and <strong>Sets</strong>.</p>
+        <p>To make a valid declaration and win the game, your hand must satisfy the declaration rules with 0 unmatched (loose) cards.</p>
+      </section>
+
+      <!-- 2. Pure Sequence (Mandatory) -->
+      <section id="pure-sequence" class="guide-section" aria-labelledby="heading-pure">
+        <h2 id="heading-pure">2. Pure Sequence (Mandatory)</h2>
+        <p>A <strong>Pure Sequence</strong> is a group of 3 or more consecutive cards of the <strong>SAME suit</strong> formed <em>without</em> using any joker as a substitute.</p>
+        <ul>
+          <li><strong>Mandatory Requirement:</strong> You <strong>MUST</strong> have at least one Pure Sequence to make a valid declaration and win the round. Without a pure sequence, any declaration is invalid and incurs penalty points.</li>
+          <li><strong>Example:</strong> <span class="guide-badge suit-red">4&hearts;</span> <span class="guide-badge suit-red">5&hearts;</span> <span class="guide-badge suit-red">6&hearts;</span> (Three consecutive hearts)</li>
+          <li><strong>Extended Example:</strong> <span class="guide-badge suit-black">10&spades;</span> <span class="guide-badge suit-black">J&spades;</span> <span class="guide-badge suit-black">Q&spades;</span> <span class="guide-badge suit-black">K&spades;</span> (Four consecutive spades)</li>
+          <li><strong>Wild Card in Natural Role:</strong> If a card has the same rank as the wild joker (for instance, 7&diams; when 7 is the wild joker), it can still form a natural pure sequence in its own suit (<span class="guide-badge suit-red">6&diams;</span> <span class="guide-badge suit-red">7&diams;</span> <span class="guide-badge suit-red">8&diams;</span>). Printed Jokers can never be part of a Pure Sequence.</li>
+          <li><strong>Ace Position:</strong> Aces can be used as low or high cards (e.g. <span class="guide-badge suit-black">A&clubs;</span> <span class="guide-badge suit-black">2&clubs;</span> <span class="guide-badge suit-black">3&clubs;</span> or <span class="guide-badge suit-black">Q&clubs;</span> <span class="guide-badge suit-black">K&clubs;</span> <span class="guide-badge suit-black">A&clubs;</span>), but round-the-corner sequences (such as K-A-2) are not valid.</li>
+        </ul>
+      </section>
+
+      <!-- 3. Impure Sequence -->
+      <section id="impure-sequence" class="guide-section" aria-labelledby="heading-impure">
+        <h2 id="heading-impure">3. Impure Sequence</h2>
+        <p>An <strong>Impure Sequence</strong> is a group of 3 or more consecutive cards of the same suit where one or more cards are substituted by a <strong>Joker</strong> (Printed Joker or Wild Joker).</p>
+        <ul>
+          <li><strong>Requirement:</strong> A winning hand must have at least <strong>two sequences</strong> in total. The first sequence must be Pure; the second sequence may be either Pure or Impure.</li>
+          <li><strong>Example with Printed Joker:</strong> <span class="guide-badge suit-red">7&hearts;</span> <span class="guide-badge suit-red">8&hearts;</span> <span class="guide-badge joker-badge">[PJ] Joker</span> (Joker replaces the 9&hearts;)</li>
+          <li><strong>Example with Wild Joker:</strong> If <strong>3</strong> is the open Wild Joker, then <span class="guide-badge suit-black">5&spades;</span> <span class="guide-badge suit-red">3&diams; (Wild)</span> <span class="guide-badge suit-black">7&spades;</span> forms a valid impure sequence of 5-6-7 of Spades.</li>
+        </ul>
+      </section>
+
+      <!-- 4. Sets -->
+      <section id="sets" class="guide-section" aria-labelledby="heading-sets">
+        <h2 id="heading-sets">4. Sets</h2>
+        <p>A <strong>Set</strong> is a group of 3 or 4 cards of the <strong>SAME rank</strong> but belonging to <strong>DIFFERENT suits</strong>.</p>
+        <ul>
+          <li><strong>Valid Set Example (3 suits):</strong> <span class="guide-badge suit-black">7&spades;</span> <span class="guide-badge suit-red">7&hearts;</span> <span class="guide-badge suit-black">7&clubs;</span></li>
+          <li><strong>Valid Set Example (4 suits):</strong> <span class="guide-badge suit-black">K&spades;</span> <span class="guide-badge suit-red">K&hearts;</span> <span class="guide-badge suit-black">K&clubs;</span> <span class="guide-badge suit-red">K&diams;</span></li>
+          <li><strong>Set with Joker:</strong> You may also use a wild card or printed joker in a set, e.g. <span class="guide-badge suit-black">9&spades;</span> <span class="guide-badge suit-red">9&hearts;</span> <span class="guide-badge joker-badge">[PJ] Joker</span></li>
+          <li><strong>Duplicate Suit Rule:</strong> A set cannot contain two cards of the exact same suit. For example, 7&spades; 7&spades; 7&hearts; is an invalid set.</li>
+        </ul>
+      </section>
+
+      <!-- 5. Jokers -->
+      <section id="jokers" class="guide-section" aria-labelledby="heading-jokers">
+        <h2 id="heading-jokers">5. Jokers (Printed and Wild Jokers)</h2>
+        <p>Jokers play a vital role in Indian Rummy by substituting for any missing card to complete impure sequences and sets.</p>
+        <ul>
+          <li><strong>Printed Joker:</strong> Standard jokers included in each 52-card deck with a printed clown illustration. They can replace any card in impure sequences and sets.</li>
+          <li><strong>Open / Wild Joker:</strong> At the start of the game, one random card is cut from the deck and placed face-up as the Wild Joker. All cards of that rank across all four suits become Wild Jokers for that deal!</li>
+          <li><strong>Cut Joker Exception:</strong> If the cut card happens to be a Printed Joker, the <strong>Ace</strong> of all suits acts as the Wild Joker for that round.</li>
+        </ul>
+      </section>
+
+      <!-- 6. How to Declare / Win -->
+      <section id="how-to-declare" class="guide-section" aria-labelledby="heading-declare">
+        <h2 id="heading-declare">6. How to Declare &amp; Win</h2>
+        <p>To win a hand, all 13 cards must be arranged in valid groups according to these rules:</p>
+        <ul>
+          <li><strong>Rule 1 &mdash; At least 2 Sequences:</strong> You must have a minimum of two sequences.</li>
+          <li><strong>Rule 2 &mdash; Mandatory Pure Sequence:</strong> At least one of your sequences must be Pure (no jokers).</li>
+          <li><strong>Rule 3 &mdash; Second Sequence:</strong> The second sequence can be pure or impure.</li>
+          <li><strong>Rule 4 &mdash; Remaining Cards:</strong> All other cards must be arranged in valid sequences or sets (e.g. 4-3-3-3 or 4-4-5 card groupings).</li>
+          <li><strong>Rule 5 &mdash; Zero Unmatched Cards:</strong> You must have 0 unmatched cards left in your hand when you discard your 14th card to the finish/declare slot.</li>
+        </ul>
+        <div class="guide-callout" role="note">
+          <strong>Winning Hand Example:</strong> Pure Sequence (<span class="guide-badge suit-red">4&hearts;</span> <span class="guide-badge suit-red">5&hearts;</span> <span class="guide-badge suit-red">6&hearts;</span>) + Impure Sequence (<span class="guide-badge suit-black">10&spades;</span> <span class="guide-badge suit-black">J&spades;</span> <span class="guide-badge joker-badge">Joker</span>) + Set (<span class="guide-badge suit-red">8&hearts;</span> <span class="guide-badge suit-black">8&clubs;</span> <span class="guide-badge suit-red">8&diams;</span>) + Set (<span class="guide-badge suit-black">Q&spades;</span> <span class="guide-badge suit-red">Q&hearts;</span> <span class="guide-badge suit-red">Q&diams;</span> <span class="guide-badge suit-black">Q&clubs;</span>) = 13 cards validly grouped!
+        </div>
+      </section>
+    </main>
+
+    <footer class="guide-footer">
+      <a href="index.html" class="primary-btn">Back to Game</a>
+    </footer>
+  </div>
+</body>
+</html>

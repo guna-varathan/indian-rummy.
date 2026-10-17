@@ -149,6 +149,36 @@ select option { background-color: #002b00; color: #ffffff; }
 }
 .btn-start:active { transform: translateY(1px); }
 
+.form-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.info-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+.info-link:focus-visible {
+  outline: 3px solid #ffeb3b;
+  outline-offset: 2px;
+  text-decoration: underline;
+}
+
 .status-banner {
   display: none;
   margin-top: 1rem;
@@ -294,6 +324,15 @@ select option { background-color: #002b00; color: #ffffff; }
   cursor: pointer;
 }
 .primary-btn:active { transform: translateY(1px); }
+a.primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+a.primary-btn:hover {
+  background-color: #1565C0;
+}
 .exit-btn { background-color: #B71C1C; }
 
 /* ---------- Cards ---------- */
@@ -502,5 +541,142 @@ select option { background-color: #002b00; color: #ffffff; }
   color: #000000;
   border: 2px solid #00E676;
   font-weight: 900;
+}
+
+/* ---------- How to Play Guide Page ---------- */
+html.guide-html,
+body.guide-page {
+  height: auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: auto !important;
+  overscroll-behavior: auto;
+  background: radial-gradient(circle at 50% 20%, #2E7D32 0%, #1B5E20 100%);
+}
+
+.guide-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: calc(var(--safe-t) + 1.5rem) calc(var(--safe-r) + 1.25rem) calc(var(--safe-b) + 2.5rem) calc(var(--safe-l) + 1.25rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.guide-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-bottom: 2px solid #2e7d32;
+  padding-bottom: 1.25rem;
+}
+
+.guide-header-top {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.guide-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ffeb3b;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.guide-subtitle {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #e0f2e0;
+  line-height: 1.5;
+}
+
+.guide-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.guide-section {
+  background-color: rgba(0, 40, 0, 0.85);
+  border: 2px solid #007700;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.guide-section h2 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.35rem;
+  color: #ffcc00;
+  border-bottom: 1px solid rgba(255, 204, 0, 0.25);
+  padding-bottom: 0.35rem;
+}
+
+.guide-section p {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+  font-size: 1rem;
+  color: #f1f8e9;
+}
+
+.guide-section ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.guide-section li {
+  margin-bottom: 0.5rem;
+  line-height: 1.55;
+  color: #ffffff;
+}
+
+.guide-section li strong {
+  color: #ffffff;
+}
+
+.guide-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.9em;
+  background: #ffffff;
+  border: 1px solid #d0d0d0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  margin: 0 2px;
+  vertical-align: middle;
+}
+
+.guide-badge.suit-red {
+  color: #c62828;
+}
+
+.guide-badge.suit-black {
+  color: #1a1a1a;
+}
+
+.guide-badge.joker-badge {
+  background: #fff8e1;
+  color: #e65100;
+  border-color: #ffe082;
+}
+
+.guide-callout {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: rgba(255, 204, 0, 0.12);
+  border-left: 4px solid #ffcc00;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  color: #fff9c4;
+  line-height: 1.5;
+}
+
+.guide-footer {
+  text-align: center;
+  padding: 1rem 0 2rem;
 }
 
