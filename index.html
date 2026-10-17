@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="only light">
+  <meta name="theme-color" content="#1B5E20">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Indian Rummy</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+</head>
+<body>
+  <!-- Screen reader live region (the only live region in the app) -->
+  <div id="announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Shown on phones held in portrait while a game is running -->
+  <div id="rotateNotice" class="rotate-notice">
+    <p>Please rotate your phone to landscape to play.</p>
+  </div>
+
+  <main>
+    <!-- SETUP SCREEN -->
+    <div id="setupScreen" class="screen setup-screen">
+      <div class="setup-inner">
+        <header id="mainHeader" class="game-header">
+          <h1 class="game-title">Indian Rummy</h1>
+          <p class="game-subtitle">Accessible Offline Edition</p>
+        </header>
+
+        <section class="setup-card" aria-labelledby="setup-heading">
+          <h2 id="setup-heading" class="sr-only">Game Setup</h2>
+
+          <form id="setup-form" onsubmit="return false;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="bot-count">Number of Bots:</label>
+                <select id="bot-count" name="botCount">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5" selected>5</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="gameMode">Game Mode:</label>
+                <select id="gameMode" name="gameMode">
+                  <option value="Points">Points</option>
+                  <option value="No-Points">No-Points</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="botDifficulty">Bot Difficulty:</label>
+                <select id="botDifficulty" name="botDifficulty">
+                  <option value="low">Low (Beginner)</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-action">
+              <button type="button" id="start-game-btn" class="btn-start">Start New Game</button>
+            </div>
+          </form>
+
+          <div id="status-message" class="status-banner" aria-hidden="true"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- LOADING SCREEN (visual only; announce() already speaks it) -->
+    <div id="loadingScreen" class="screen loading-screen" hidden aria-hidden="true">
+      <p>Shuffling and dealing cards&hellip;</p>
+    </div>
+
+    <!-- GAME TABLE -->
+    <section id="gameBoard" class="screen game-board" aria-label="Game table" hidden>
+      <div id="botsContainer" class="bots-container" aria-hidden="true"></div>
+      <div id="turnIndicator" class="turn-indicator" aria-hidden="true"></div>
+
+      <div id="tableCenter" class="table-center">
+        <div id="openJokerCard" class="card open-joker" aria-hidden="true"></div>
+        <div id="closedDeck" class="card deck-stack" tabindex="0" role="button" aria-label="Closed Deck. Press to draw.">Closed Deck</div>
+        <div id="openDeck" class="card" tabindex="0" role="button" aria-label="Open Deck">Open Deck</div>
+      </div>
+
+      <!-- Plain text for screen readers, not a live region (announce() already speaks it) -->
+      <div id="jokerDisplay" class="sr-only"></div>
+
+      <div id="handStatus" class="hand-status"></div>
+
+      <div id="playerHand" class="player-hand" role="group" aria-label="Your cards"></div>
+
+      <div id="actionButtons" class="action-buttons">
+        <button id="groupBtn" type="button" class="primary-btn" aria-label="Group selected cards" style="display:none">Group</button>
+        <button id="declareBtn" type="button" class="primary-btn" aria-label="Declare Hand" style="display:none">Declare</button>
+        <button id="discardBtn" type="button" class="primary-btn" aria-label="Discard Selected Card" style="display:none">Discard</button>
+        <button id="autoArrangeBtn" type="button" class="primary-btn" aria-label="Auto Arrange Cards">Auto Arrange</button>
+        <button id="exitBtn" type="button" class="primary-btn exit-btn" aria-label="Exit Game">Exit</button>
+      </div>
+    </section>
+
+    <!-- GAME OVER -->
+    <section id="gameOverScreen" class="screen gameover-screen" hidden aria-labelledby="gameOverTitle">
+      <div class="gameover-inner">
+        <h2 id="gameOverTitle" tabindex="-1">Game Over</h2>
+        <p id="gameOverMessage"></p>
+        <div id="gameOverCards" class="gameover-cards" role="group" aria-label="Final cards"></div>
+        <button id="playAgainBtn" type="button" class="primary-btn">Start New Game</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
