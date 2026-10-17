@@ -349,9 +349,14 @@ function renderFinalCards(handArray) {
  */
 function updateActionButtons(hand) {
   const arrangeBtn = document.getElementById('groupBtn');
+  const unselectBtn = document.getElementById('unselectBtn');
   const discardBtn = document.getElementById('discardBtn');
   const declareBtn = document.getElementById('declareBtn');
   const selectedCards = hand ? hand.filter(c => c.isSelected) : [];
+
+  if (unselectBtn) {
+    unselectBtn.style.display = (selectedCards.length > 0) ? 'block' : 'none';
+  }
 
   if (arrangeBtn) {
     if (selectedCards.length >= 2 && isUserTurn) {
@@ -959,6 +964,9 @@ function handleDeclare() {
 
   const arrangeBtn = document.getElementById('groupBtn');
   if (arrangeBtn) arrangeBtn.style.display = 'none';
+
+  const unselectBtn = document.getElementById('unselectBtn');
+  if (unselectBtn) unselectBtn.style.display = 'none';
 
   setScreen('gameover');
 
@@ -1589,6 +1597,9 @@ function resetGameToSetup() {
   const arrangeBtnEl = document.getElementById('groupBtn');
   if (arrangeBtnEl) arrangeBtnEl.style.display = 'none';
 
+  const unselectBtnEl = document.getElementById('unselectBtn');
+  if (unselectBtnEl) unselectBtnEl.style.display = 'none';
+
   const gameOverCardsEl = document.getElementById('gameOverCards');
   if (gameOverCardsEl) gameOverCardsEl.innerHTML = '';
 
@@ -1743,6 +1754,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusMessageEl = document.getElementById('status-message');
   const autoArrangeBtn = document.getElementById('autoArrangeBtn');
   const arrangeBtn = document.getElementById('groupBtn');
+  const unselectBtn = document.getElementById('unselectBtn');
   const discardBtn = document.getElementById('discardBtn');
   const declareBtn = document.getElementById('declareBtn');
   const playAgainBtn = document.getElementById('playAgainBtn');
@@ -1892,6 +1904,28 @@ document.addEventListener('DOMContentLoaded', () => {
       updateActionButtons(currentUserHand);
       renderPlayerHand(currentUserHand);
       announce('Cards grouped successfully');
+    });
+  }
+
+  // Unselect All button click listener: deselects all selected cards without modifying order or groups
+  if (unselectBtn) {
+    unselectBtn.addEventListener('click', () => {
+      if (activePointerDrag) return;
+      let anySelected = false;
+      currentUserHand.forEach(c => {
+        if (c.isSelected) {
+          c.isSelected = false;
+          anySelected = true;
+        }
+      });
+      if (anySelected) {
+        document.querySelectorAll('#playerHand .card.selected').forEach(el => {
+          el.classList.remove('selected');
+          el.setAttribute('aria-pressed', 'false');
+        });
+        updateActionButtons(currentUserHand);
+        announce('Selection cleared');
+      }
     });
   }
 

@@ -294,7 +294,7 @@ select option { background-color: #002b00; color: #ffffff; }
   flex: 0 0 auto;
   width: var(--card-w);
   height: var(--card-h);
-  padding: calc(var(--card-w) * 0.06) calc(var(--card-w) * 0.08);
+  padding: calc(var(--card-w) * 0.05) calc(var(--card-w) * 0.06);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -320,13 +320,13 @@ select option { background-color: #002b00; color: #ffffff; }
 .card.black-suit { color: #000000; }
 
 .card-top-left {
-  font-size: var(--rank-size);
+  font-size: calc(var(--rank-size) * 1.33);
   font-weight: 900;
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.05em;
 }
 .card-center {
-  font-size: var(--suit-size);
+  font-size: calc(var(--suit-size) * 1.32);
   line-height: 1;
   margin-top: 1px;
 }
