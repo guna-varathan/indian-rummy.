@@ -1,7 +1,7 @@
 import announce from './announcer.js';
 import bots from './bots.js';
 import { createDeck, shuffleDeck } from './deck.js';
-import { dealCards, getOpenJoker, getWildJokerRank, isJokerCard, isPureSequence, isImpureSequence, isSet, validateFullRummyHand, findWinningGrouping, autoGroupHand, findPureSequences, findDeclareOption } from './gameLogic.js';
+import { dealCards, getOpenJoker, getWildJokerRank, isJokerCard, isPureSequence, isImpureSequence, isSet, validateFullRummyHand, findWinningGrouping, autoGroupHand, findPureSequences, findDeclareOption, moveCardsInHand } from './gameLogic.js';
 
 // User's dealt hand, bot hands, active bot names, and auto arrange toggle state
 let currentUserHand = [];
@@ -76,23 +76,57 @@ function fitHand() {
   if (N === 0 || G === 0) return;
 
   const cardW = cards[0].offsetWidth;
-  if (!cardW) return;
+  if (!cardW || cardW <= 0) return;
 
   const available = board.clientWidth - 24;
-  const minPeek = cardW * 0.44; // rank and suit must stay readable
-  const maxPeek = cardW * 0.6;
+  if (available <= 0) return;
+
+  // Minimum visible strip to keep rank (including '10') and suit comfortably readable
+  const minPeek = Math.max(22, Math.round(cardW * 0.46));
+  // Allow a wider visible strip when sufficient space is available
+  const maxPeek = Math.round(cardW * 0.72);
   let gap = 10;
 
-  let peek = N > G ? (available - G * (cardW + 2 * gap)) / (N - G) : maxPeek;
-  if (peek < minPeek) {
-    peek = minPeek;
-    const spare = available - peek * (N - G) - G * cardW;
-    gap = Math.max(1, Math.min(10, spare / (2 * G)));
+  let peek = maxPeek;
+  if (N > G) {
+    // Distribute available space to overlapping cards
+    peek = (available - G * (cardW + 2 * gap)) / (N - G);
+    if (peek < minPeek) {
+      peek = minPeek;
+      const spare = available - peek * (N - G) - G * cardW;
+      gap = Math.max(2, Math.min(10, Math.floor(spare / (2 * G))));
+    }
+  } else {
+    // When every card is in its own group (N === G), optimize gap
+    const needed = G * (cardW + 2 * gap);
+    if (needed > available) {
+      gap = Math.max(2, Math.floor((available - G * cardW) / (2 * G)));
+    }
   }
-  peek = Math.min(maxPeek, peek);
+  peek = Math.min(maxPeek, Math.max(minPeek, Math.round(peek)));
 
-  handEl.style.setProperty('--peek', peek + 'px');
-  handEl.style.setProperty('--group-gap', gap + 'px');
+  // Calculate dynamic rank size that fits the visible strip
+  const rankSize = Math.max(13, Math.min(Math.round(cardW * 0.48), Math.round(peek * 0.88)));
+  const suitSize = Math.max(12, Math.min(Math.round(cardW * 0.44), Math.round(rankSize * 0.92)));
+
+  const newPeek = peek + 'px';
+  const newGap = gap + 'px';
+  const newRankSize = rankSize + 'px';
+  const newSuitSize = suitSize + 'px';
+
+  // Only update styles if changed to prevent redundant reflows
+  if (handEl.style.getPropertyValue('--peek') !== newPeek) {
+    handEl.style.setProperty('--peek', newPeek);
+  }
+  if (handEl.style.getPropertyValue('--group-gap') !== newGap) {
+    handEl.style.setProperty('--group-gap', newGap);
+  }
+  if (handEl.style.getPropertyValue('--rank-size') !== newRankSize) {
+    handEl.style.setProperty('--rank-size', newRankSize);
+  }
+  if (handEl.style.getPropertyValue('--suit-size') !== newSuitSize) {
+    handEl.style.setProperty('--suit-size', newSuitSize);
+  }
 }
 
 // ---------- Fullscreen + landscape lock (hides the browser bars = more room) ----------
@@ -1073,6 +1107,46 @@ function refreshHandStatus(context) {
   return { text: parts.join(' '), eligible: !!option };
 }
 
+// State for touch and pen pointer drag-and-drop
+let activePointerDrag = null;
+let suppressNextCardClick = false;
+
+function cleanupDragGhostAndIndicators() {
+  if (activePointerDrag && activePointerDrag.ghostEl) {
+    activePointerDrag.ghostEl.remove();
+  }
+  document.querySelectorAll('#playerHand .dragging, #playerHand .drop-before, #playerHand .drop-after, #playerHand .drop-group, #playerHand .drop-new-before, #playerHand .drop-new-after')
+    .forEach(el => el.classList.remove('dragging', 'drop-before', 'drop-after', 'drop-group', 'drop-new-before', 'drop-new-after'));
+  activePointerDrag = null;
+}
+
+function createDragGhost(movingCards, x, y) {
+  const ghost = document.createElement('div');
+  ghost.className = 'drag-ghost';
+  ghost.setAttribute('aria-hidden', 'true');
+  ghost.style.left = x + 'px';
+  ghost.style.top = y + 'px';
+
+  if (movingCards.length === 1) {
+    const c = movingCards[0];
+    ghost.classList.add('card');
+    if (c.suit === 'Hearts' || c.suit === 'Diamonds' || (c.isJoker && !c.suit)) {
+      ghost.classList.add('red', 'red-suit');
+    } else {
+      ghost.classList.add('black', 'black-suit');
+    }
+    ghost.innerHTML = renderCardHTML(c);
+  } else {
+    ghost.classList.add('card', 'multi-card-ghost');
+    ghost.innerHTML = `
+      <div class="card-top-left" style="font-size: 1.1rem; font-weight: 900;">${movingCards.length}</div>
+      <div class="card-center" style="font-size: 0.9rem;">cards</div>
+    `;
+  }
+  document.body.appendChild(ghost);
+  return ghost;
+}
+
 /**
  * Renders the player's cards into #playerHand grouped by their group property
  * inside <div class="card-group" role="group" aria-label="Card group"> with full
@@ -1129,16 +1203,20 @@ function renderPlayerHand(hand) {
       }
       const draggedCardId = e.dataTransfer.getData('text/plain');
       const targetCard = currentUserHand.find(c => c.id === draggedCardId);
-      if (targetCard && targetCard.group !== groupId) {
-        targetCard.group = groupId;
-        const groupCards = currentUserHand.filter(c => c.group === groupId);
-        const groupCardNames = groupCards.map(c => c.displayName).join(', ');
+      if (targetCard) {
+        const res = moveCardsInHand(currentUserHand, draggedCardId, { type: 'group', groupId });
+        if (res.success) {
+          currentUserHand = res.hand;
+          const groupCards = currentUserHand.filter(c => c.group === res.targetGroupId);
+          const groupCardNames = groupCards.map(c => c.displayName).join(', ');
 
-        announce('Moved to group ' + groupId + '. Cards in this group: ' + groupCardNames);
-        renderPlayerHand(currentUserHand);
+          announce('Moved to group ' + res.targetGroupId + '. Cards in this group: ' + groupCardNames);
+          renderPlayerHand(currentUserHand);
+          saveGameState();
 
-        const elToFocus = document.querySelector(`[data-card-id="${draggedCardId}"]`);
-        if (elToFocus) elToFocus.focus();
+          const elToFocus = document.querySelector(`[data-card-id="${draggedCardId}"]`);
+          if (elToFocus) elToFocus.focus();
+        }
       }
     });
 
@@ -1157,6 +1235,162 @@ function renderPlayerHand(hand) {
         }
         e.dataTransfer.setData('text/plain', card.id);
         e.dataTransfer.effectAllowed = 'move';
+      });
+
+      // Pointer drag-and-drop support for touch and pen
+      cardEl.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse') return;
+        if (!isUserTurn) return;
+        if (!e.isPrimary) return;
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const pointerId = e.pointerId;
+
+        // If card is selected, move all selected cards; otherwise move only this card
+        const movingCards = card.isSelected
+          ? currentUserHand.filter(c => c.isSelected)
+          : [card];
+        const movingCardIds = movingCards.map(c => c.id);
+
+        let isDragging = false;
+        let ghostEl = null;
+        let currentDropTarget = null;
+
+        const onPointerMove = (moveEvent) => {
+          if (moveEvent.pointerId !== pointerId) return;
+
+          if (!isDragging) {
+            const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
+            if (dist >= 10) {
+              isDragging = true;
+              suppressNextCardClick = true;
+
+              try {
+                cardEl.setPointerCapture(pointerId);
+              } catch (_) {}
+
+              ghostEl = createDragGhost(movingCards, moveEvent.clientX, moveEvent.clientY);
+              activePointerDrag = { pointerId, ghostEl, movingCardIds };
+
+              movingCardIds.forEach(id => {
+                const el = document.querySelector(`[data-card-id="${id}"]`);
+                if (el) el.classList.add('dragging');
+              });
+            }
+          }
+
+          if (isDragging && ghostEl) {
+            ghostEl.style.left = moveEvent.clientX + 'px';
+            ghostEl.style.top = moveEvent.clientY + 'px';
+
+            const hit = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+
+            document.querySelectorAll('#playerHand .drop-before, #playerHand .drop-after, #playerHand .drop-group, #playerHand .drop-new-before, #playerHand .drop-new-after')
+              .forEach(el => el.classList.remove('drop-before', 'drop-after', 'drop-group', 'drop-new-before', 'drop-new-after'));
+
+            currentDropTarget = null;
+
+            if (hit) {
+              const targetCardEl = hit.closest('#playerHand .card');
+              const targetGroupEl = hit.closest('#playerHand .card-group');
+              const handEl = hit.closest('#playerHand');
+
+              if (targetCardEl && targetCardEl.dataset.cardId && !movingCardIds.includes(targetCardEl.dataset.cardId)) {
+                const rect = targetCardEl.getBoundingClientRect();
+                const isBefore = moveEvent.clientX < rect.left + rect.width / 2;
+                currentDropTarget = {
+                  type: 'card',
+                  cardId: targetCardEl.dataset.cardId,
+                  position: isBefore ? 'before' : 'after'
+                };
+                targetCardEl.classList.add(isBefore ? 'drop-before' : 'drop-after');
+              } else if (targetGroupEl && targetGroupEl.dataset.groupId) {
+                currentDropTarget = {
+                  type: 'group',
+                  groupId: targetGroupEl.dataset.groupId,
+                  position: 'end'
+                };
+                targetGroupEl.classList.add('drop-group');
+              } else if (handEl) {
+                const groupEls = Array.from(handEl.querySelectorAll('.card-group'));
+                if (groupEls.length > 0) {
+                  if (moveEvent.clientX < groupEls[0].getBoundingClientRect().left) {
+                    currentDropTarget = { type: 'new_group', position: 'start' };
+                    groupEls[0].classList.add('drop-new-before');
+                  } else if (moveEvent.clientX > groupEls[groupEls.length - 1].getBoundingClientRect().right) {
+                    currentDropTarget = { type: 'new_group', position: 'end' };
+                    groupEls[groupEls.length - 1].classList.add('drop-new-after');
+                  } else {
+                    for (let i = 0; i < groupEls.length - 1; i++) {
+                      const rRight = groupEls[i].getBoundingClientRect().right;
+                      const nextLeft = groupEls[i + 1].getBoundingClientRect().left;
+                      if (moveEvent.clientX >= rRight && moveEvent.clientX <= nextLeft) {
+                        currentDropTarget = {
+                          type: 'new_group',
+                          relativeGroupId: groupEls[i].dataset.groupId,
+                          position: 'after'
+                        };
+                        groupEls[i].classList.add('drop-new-after');
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        };
+
+        const onPointerEnd = (upEvent) => {
+          if (upEvent.pointerId !== pointerId) return;
+
+          cardEl.removeEventListener('pointermove', onPointerMove);
+          cardEl.removeEventListener('pointerup', onPointerEnd);
+          cardEl.removeEventListener('pointercancel', onPointerEnd);
+
+          try {
+            if (cardEl.hasPointerCapture(pointerId)) {
+              cardEl.releasePointerCapture(pointerId);
+            }
+          } catch (_) {}
+
+          if (isDragging) {
+            cleanupDragGhostAndIndicators();
+
+            if (currentDropTarget) {
+              const res = moveCardsInHand(currentUserHand, movingCardIds, currentDropTarget);
+              if (res.success) {
+                currentUserHand = res.hand;
+
+                const groupCards = currentUserHand.filter(c => c.group === res.targetGroupId);
+                const groupCardNames = groupCards.map(c => c.displayName).join(', ');
+                const movedCardNames = movingCards.map(c => c.displayName).join(', ');
+
+                announce('Moved ' + movedCardNames + ' to group ' + res.targetGroupId + '. Cards in this group: ' + groupCardNames);
+                renderPlayerHand(currentUserHand);
+                saveGameState();
+
+                const elToFocus = document.querySelector(`[data-card-id="${movingCardIds[0]}"]`);
+                if (elToFocus) elToFocus.focus();
+              } else {
+                announce('Card move cancelled.');
+              }
+            } else {
+              announce('Card move cancelled.');
+            }
+
+            setTimeout(() => {
+              suppressNextCardClick = false;
+            }, 80);
+          } else {
+            cleanupDragGhostAndIndicators();
+          }
+        };
+
+        cardEl.addEventListener('pointermove', onPointerMove);
+        cardEl.addEventListener('pointerup', onPointerEnd);
+        cardEl.addEventListener('pointercancel', onPointerEnd);
       });
 
       if (card.isSelected) {
@@ -1178,6 +1412,10 @@ function renderPlayerHand(hand) {
 
       // Card selection toggle handler: toggles isSelected on card object and .selected CSS class
       const handleCardActivation = () => {
+        if (suppressNextCardClick) {
+          suppressNextCardClick = false;
+          return;
+        }
         if (!isUserTurn) {
           announce('It is not your turn yet.');
           return;

@@ -732,6 +732,179 @@ export function findDeclareOption(hand14, wildJokerRank, timeBudgetMs = 400) {
   return null;
 }
 
+/**
+ * Moves one or more cards within a player's hand to a target position or group.
+ * Pure function: does not perform any DOM operations.
+ *
+ * @param {Array<Object>} hand - The full hand array of card objects.
+ * @param {Array<string>|Array<Object>|string|Object} cardsToMove - Card IDs or card objects to move.
+ * @param {Object} target - Target drop specification:
+ *    - { type: 'card', cardId: string, position: 'before'|'after' }
+ *    - { type: 'group', groupId: number|string, position?: 'start'|'end' }
+ *    - { type: 'new_group', relativeGroupId?: number|string, position: 'before'|'after'|'start'|'end' }
+ * @returns {{ success: boolean, hand: Array<Object>, movedCardIds: string[], targetGroupId: number|null }}
+ */
+export function moveCardsInHand(hand, cardsToMove, target) {
+  if (!Array.isArray(hand) || hand.length === 0 || !cardsToMove || !target || !target.type) {
+    return { success: false, hand: hand || [], movedCardIds: [], targetGroupId: null };
+  }
+
+  // Normalize cardsToMove to an array of card IDs
+  const rawList = Array.isArray(cardsToMove) ? cardsToMove : [cardsToMove];
+  const moveIds = rawList.map(c => (typeof c === 'string' ? c : c?.id)).filter(Boolean);
+
+  if (moveIds.length === 0) {
+    return { success: false, hand, movedCardIds: [], targetGroupId: null };
+  }
+
+  // Verify all moveIds exist in hand
+  const movingCards = hand.filter(c => moveIds.includes(c.id));
+  if (movingCards.length !== moveIds.length) {
+    return { success: false, hand, movedCardIds: [], targetGroupId: null };
+  }
+
+  const remainingCards = hand.filter(c => !moveIds.includes(c.id));
+
+  // Build sorted distinct group order of existing cards
+  const existingGroupIds = [];
+  hand.forEach(c => {
+    const g = typeof c.group === 'number' ? c.group : 0;
+    if (!existingGroupIds.includes(g)) existingGroupIds.push(g);
+  });
+  existingGroupIds.sort((a, b) => Number(a) - Number(b));
+
+  let newHand = [];
+  let targetGroupId = null;
+
+  if (target.type === 'card') {
+    const targetCardId = target.cardId;
+    // Reject dropping onto one of the cards being moved
+    if (moveIds.includes(targetCardId)) {
+      return { success: false, hand, movedCardIds: [], targetGroupId: null };
+    }
+
+    const targetIdx = remainingCards.findIndex(c => c.id === targetCardId);
+    if (targetIdx === -1) {
+      return { success: false, hand, movedCardIds: [], targetGroupId: null };
+    }
+
+    const targetCard = remainingCards[targetIdx];
+    targetGroupId = typeof targetCard.group === 'number' ? targetCard.group : 0;
+
+    // Update moving cards' group
+    const updatedMoving = movingCards.map(c => ({ ...c, group: targetGroupId }));
+
+    const insertIdx = target.position === 'after' ? targetIdx + 1 : targetIdx;
+    newHand = [
+      ...remainingCards.slice(0, insertIdx),
+      ...updatedMoving,
+      ...remainingCards.slice(insertIdx)
+    ];
+  } else if (target.type === 'group') {
+    targetGroupId = Number(target.groupId);
+    if (isNaN(targetGroupId)) {
+      return { success: false, hand, movedCardIds: [], targetGroupId: null };
+    }
+
+    const updatedMoving = movingCards.map(c => ({ ...c, group: targetGroupId }));
+    const groupCardIndices = [];
+    remainingCards.forEach((c, idx) => {
+      if (c.group === targetGroupId) groupCardIndices.push(idx);
+    });
+
+    if (groupCardIndices.length === 0) {
+      // Group only had the moving cards or is a new group with specified ID
+      newHand = [...remainingCards, ...updatedMoving];
+    } else if (target.position === 'start') {
+      const firstIdx = groupCardIndices[0];
+      newHand = [
+        ...remainingCards.slice(0, firstIdx),
+        ...updatedMoving,
+        ...remainingCards.slice(firstIdx)
+      ];
+    } else {
+      // Default 'end'
+      const lastIdx = groupCardIndices[groupCardIndices.length - 1];
+      newHand = [
+        ...remainingCards.slice(0, lastIdx + 1),
+        ...updatedMoving,
+        ...remainingCards.slice(lastIdx + 1)
+      ];
+    }
+  } else if (target.type === 'new_group') {
+    // Collect remaining groups in sorted order
+    const remainingGroupIds = [];
+    remainingCards.forEach(c => {
+      const g = typeof c.group === 'number' ? c.group : 0;
+      if (!remainingGroupIds.includes(g)) remainingGroupIds.push(g);
+    });
+    remainingGroupIds.sort((a, b) => Number(a) - Number(b));
+
+    // Determine target group position relative to remaining groups
+    let newGroupIndex = remainingGroupIds.length; // default 'end'
+    if (target.position === 'start') {
+      newGroupIndex = 0;
+    } else if (target.relativeGroupId !== undefined) {
+      const relId = Number(target.relativeGroupId);
+      const relIdx = remainingGroupIds.indexOf(relId);
+      if (relIdx !== -1) {
+        newGroupIndex = target.position === 'before' ? relIdx : relIdx + 1;
+      }
+    }
+
+    // Generate ordered group list with placeholder for new group
+    const NEW_GROUP_TOKEN = '__NEW_GROUP__';
+    const orderedGroupList = [
+      ...remainingGroupIds.slice(0, newGroupIndex),
+      NEW_GROUP_TOKEN,
+      ...remainingGroupIds.slice(newGroupIndex)
+    ];
+
+    // Assign clean sequential integer group IDs (1, 2, 3...)
+    const groupIdMap = new Map();
+    orderedGroupList.forEach((token, idx) => {
+      groupIdMap.set(token, idx + 1);
+    });
+
+    targetGroupId = groupIdMap.get(NEW_GROUP_TOKEN);
+    const updatedMoving = movingCards.map(c => ({ ...c, group: targetGroupId }));
+
+    // Re-index remaining cards and assemble newHand preserving group order
+    const updatedRemaining = remainingCards.map(c => ({
+      ...c,
+      group: groupIdMap.get(c.group) ?? c.group
+    }));
+
+    // Find insertion index in updatedRemaining
+    let insertIdx = updatedRemaining.length;
+    if (newGroupIndex < remainingGroupIds.length) {
+      const nextGroupId = groupIdMap.get(remainingGroupIds[newGroupIndex]);
+      const nextCardIdx = updatedRemaining.findIndex(c => c.group === nextGroupId);
+      if (nextCardIdx !== -1) insertIdx = nextCardIdx;
+    }
+
+    newHand = [
+      ...updatedRemaining.slice(0, insertIdx),
+      ...updatedMoving,
+      ...updatedRemaining.slice(insertIdx)
+    ];
+  } else {
+    return { success: false, hand, movedCardIds: [], targetGroupId: null };
+  }
+
+  // Safety integrity check: card count must match
+  if (newHand.length !== hand.length) {
+    return { success: false, hand, movedCardIds: [], targetGroupId: null };
+  }
+
+  return {
+    success: true,
+    hand: newHand,
+    movedCardIds: movingCards.map(c => c.id),
+    targetGroupId
+  };
+}
+
 export default {
   dealCards,
   getOpenJoker,
@@ -744,6 +917,7 @@ export default {
   findWinningGrouping,
   autoGroupHand,
   findPureSequences,
-  findDeclareOption
+  findDeclareOption,
+  moveCardsInHand
 };
 

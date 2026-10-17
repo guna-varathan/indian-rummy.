@@ -16,6 +16,10 @@
   /* Set from JS by fitHand(); these are only the defaults */
   --peek: calc(var(--card-w) * 0.5);
   --group-gap: 10px;
+
+  /* Card rank and suit symbol sizing */
+  --rank-size: calc(var(--card-w) * 0.48);
+  --suit-size: calc(var(--card-w) * 0.44);
 }
 
 @supports not (height: 100dvh) {
@@ -246,6 +250,7 @@ select option { background-color: #002b00; color: #ffffff; }
   padding: 16px 0 6px;         /* room for the raised (selected) card */
   overflow-x: auto;            /* last-resort safety if the hand is still too wide */
   overflow-y: hidden;
+  touch-action: pan-x;
 }
 .card-group {
   display: flex;
@@ -289,7 +294,7 @@ select option { background-color: #002b00; color: #ffffff; }
   flex: 0 0 auto;
   width: var(--card-w);
   height: var(--card-h);
-  padding: calc(var(--card-w) * 0.08) calc(var(--card-w) * 0.1);
+  padding: calc(var(--card-w) * 0.06) calc(var(--card-w) * 0.08);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -308,13 +313,23 @@ select option { background-color: #002b00; color: #ffffff; }
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: none;
   transition: transform 0.15s ease;
 }
 .card.red-suit { color: #D32F2F; }
 .card.black-suit { color: #000000; }
 
-.card-top-left { font-size: calc(var(--card-w) * 0.4); font-weight: 900; line-height: 1; }
-.card-center { font-size: calc(var(--card-w) * 0.38); line-height: 1; margin-top: 2px; }
+.card-top-left {
+  font-size: var(--rank-size);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+.card-center {
+  font-size: var(--suit-size);
+  line-height: 1;
+  margin-top: 1px;
+}
 
 .deck-stack {
   background: repeating-linear-gradient(45deg, #444, #444 8px, #222 8px, #222 16px);
@@ -427,4 +442,57 @@ select option { background-color: #002b00; color: #ffffff; }
 .hand-status:empty { display: none; }
 .hand-status.has-pure { border-color: #69F0AE; }
 .hand-status.ready { background: #003300; border-color: #00E676; }
+
+/* Touch and Pointer Drag-and-Drop States */
+.card.dragging {
+  opacity: 0.35;
+  transform: scale(0.96);
+}
+
+.player-hand .card.drop-before {
+  box-shadow: -4px 0 0 3px #00E676, 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.player-hand .card.drop-after {
+  box-shadow: 4px 0 0 3px #00E676, 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.player-hand .card-group.drop-group {
+  outline: 3px dashed #00E676;
+  outline-offset: 4px;
+  border-radius: 8px;
+  background: rgba(0, 230, 118, 0.12);
+}
+
+.player-hand .card-group.drop-new-before {
+  border-left: 4px solid #00E676;
+  padding-left: 4px;
+}
+
+.player-hand .card-group.drop-new-after {
+  border-right: 4px solid #00E676;
+  padding-right: 4px;
+}
+
+.drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  opacity: 0.94;
+  border-radius: 6px;
+  transition: none;
+}
+
+.drag-ghost.multi-card-ghost {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid #00E676;
+  font-weight: 900;
+}
 
