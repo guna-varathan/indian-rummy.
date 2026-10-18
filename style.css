@@ -318,12 +318,17 @@ select option { background-color: #002b00; color: #ffffff; }
   white-space: nowrap;
   color: #ffffff;
   background-color: #0D47A1;
+  background-image: linear-gradient(135deg, #1E88E5 0%, #0D47A1 100%);
   border: 2px solid #ffffff;
   border-radius: 8px;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
   cursor: pointer;
+  transition: background-image 0.15s ease, filter 0.15s ease, transform 0.1s ease;
 }
-.primary-btn:active { transform: translateY(1px); }
+.primary-btn:active {
+  transform: translateY(1px);
+  filter: brightness(0.92);
+}
 a.primary-btn {
   display: inline-flex;
   align-items: center;
@@ -331,9 +336,147 @@ a.primary-btn {
   text-decoration: none;
 }
 a.primary-btn:hover {
-  background-color: #1565C0;
+  background-image: linear-gradient(135deg, #42A5F5 0%, #1565C0 100%);
 }
-.exit-btn { background-color: #B71C1C; }
+
+/* Abbreviated action buttons: narrower look, tap target stays at least 44px (min-height/min-width above) */
+.action-buttons .primary-btn { padding: 0 10px; }
+
+/* Distinct Action Button Colours (Specific IDs & Classes) */
+#exitBtn, .exit-btn {
+  color: #ffffff;
+  background-color: #B71C1C;
+  background-image: linear-gradient(135deg, #E53935 0%, #B71C1C 100%);
+}
+#exitBtn:hover, .exit-btn:hover {
+  background-image: linear-gradient(135deg, #EF5350 0%, #C62828 100%);
+}
+
+#autoArrangeBtn, .auto-arrange-btn {
+  color: #ffffff;
+  background-color: #512DA8;
+  background-image: linear-gradient(135deg, #7C4DFF 0%, #512DA8 100%);
+}
+#autoArrangeBtn:hover, .auto-arrange-btn:hover {
+  background-image: linear-gradient(135deg, #8C64FF 0%, #5E35B1 100%);
+}
+
+#unselectBtn, .unselect-btn {
+  color: #ffffff;
+  background-color: #37474F;
+  background-image: linear-gradient(135deg, #607D8B 0%, #37474F 100%);
+}
+#unselectBtn:hover, .unselect-btn:hover {
+  background-image: linear-gradient(135deg, #78909C 0%, #455A64 100%);
+}
+
+#groupBtn, .group-btn {
+  color: #ffffff;
+  background-color: #0D47A1;
+  background-image: linear-gradient(135deg, #1E88E5 0%, #0D47A1 100%);
+}
+#groupBtn:hover, .group-btn:hover {
+  background-image: linear-gradient(135deg, #42A5F5 0%, #1565C0 100%);
+}
+
+#addToGroupBtn, .add-to-group-btn {
+  color: #ffffff;
+  background-color: #00796B;
+  background-image: linear-gradient(135deg, #00A896 0%, #00796B 100%);
+}
+#addToGroupBtn:hover, .add-to-group-btn:hover {
+  background-image: linear-gradient(135deg, #02B8A5 0%, #00897B 100%);
+}
+
+#declareBtn, .declare-btn {
+  color: #332300;
+  background-color: #FFB300;
+  background-image: linear-gradient(135deg, #FFDF70 0%, #FFB300 100%);
+}
+#declareBtn:hover, .declare-btn:hover {
+  background-image: linear-gradient(135deg, #FFE890 0%, #FFC107 100%);
+}
+#declareBtn:focus-visible, .declare-btn:focus-visible {
+  outline: 4px solid #ffcc00;
+  box-shadow: 0 0 0 2px #332300, 0 3px 6px rgba(0, 0, 0, 0.5);
+}
+
+#discardBtn, .discard-btn {
+  color: #ffffff;
+  background-color: #D84315;
+  background-image: linear-gradient(135deg, #FF7043 0%, #D84315 100%);
+}
+#discardBtn:hover, .discard-btn:hover {
+  background-image: linear-gradient(135deg, #FF8A65 0%, #E64A19 100%);
+}
+
+/* ---------- Add to Group dialog (shows the real cards of each group) ---------- */
+.group-dialog {
+  /* smaller cards for the preview rows (these must be redefined here, see :root) */
+  --card-h: clamp(48px, calc(var(--app-h) * 0.17), 80px);
+  --card-w: calc(var(--card-h) * 0.7);
+  --peek: calc(var(--card-w) * 0.6);
+  --rank-size: calc(var(--card-w) * 0.4);
+  --suit-size: calc(var(--card-w) * 0.36);
+
+  width: min(94vw, 640px);
+  max-height: calc(var(--app-h) - 24px);
+  padding: 12px;
+  overflow: hidden;
+  color: #ffffff;
+  background: #0b2e0f;
+  border: 3px solid #ffffff;
+  border-radius: 12px;
+}
+.group-dialog[open] { display: flex; flex-direction: column; }
+.group-dialog::backdrop { background: rgba(0, 0, 0, 0.65); }
+.group-dialog-title { margin: 0 0 8px; font-size: 1.1rem; }
+.group-dialog-title:focus { outline: none; }
+/* Only the list scrolls; the title and the Cancel button always stay visible */
+.group-dialog-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+#addToGroupCancel {
+  color: #ffffff;
+  background-color: #B71C1C;
+  background-image: linear-gradient(135deg, #E53935 0%, #B71C1C 100%);
+}
+#addToGroupCancel:hover {
+  background-image: linear-gradient(135deg, #EF5350 0%, #C62828 100%);
+}
+
+.group-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: left;
+  color: #ffffff;
+  background: #14501a;
+  border: 2px solid #ffffff;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.group-choice:hover { background: #1b6b24; }
+.group-choice-label { flex: 0 0 auto; min-width: 4.5em; }
+.mini-hand {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  min-width: 0;
+  padding: 14px 8px 6px 4px; /* room for the lifted, glowing card */
+  overflow-x: auto;
+}
+.mini-hand > .card { pointer-events: none; touch-action: auto; cursor: pointer; }
+.mini-hand > .card + .card { margin-left: calc(var(--peek) - var(--card-w)); }
+/* the card that is being added: lifted and glowing, so the user sees where it lands */
+.mini-hand > .card.incoming {
+  transform: translateY(-6px);
+  box-shadow: 0 0 0 3px #ffcc00, 0 0 10px 3px rgba(255, 204, 0, 0.85);
+}
 
 /* ---------- Cards ---------- */
 .card {

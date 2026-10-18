@@ -49,6 +49,7 @@ const SCREEN_IDS = {
  * Any other name hides all of them.
  */
 function setScreen(name) {
+  if (name !== 'game') closeAddToGroupDialog();
   Object.entries(SCREEN_IDS).forEach(([key, id]) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -343,6 +344,30 @@ function renderFinalCards(handArray) {
 }
 
 /**
+ * Groups that the selected cards can be added to ("Add to Group").
+ * A group is offered when it has at least one card that is NOT selected and at least
+ * one selected card is not already inside it. Numbering ("Group X of Y") matches the
+ * aria-labels created in renderPlayerHand().
+ *
+ * @param {Array} hand - Player's hand
+ * @returns {Array<{groupId:number, number:number, total:number, cards:Array}>}
+ */
+function getAddToGroupTargets(hand) {
+  const selected = hand.filter(c => c.isSelected);
+  if (selected.length === 0) return [];
+  const gid = (c) => (typeof c.group === 'number' ? c.group : 0);
+  const ids = [...new Set(hand.map(gid))].sort((a, b) => a - b);
+  return ids
+    .map((id, idx) => ({
+      groupId: id,
+      number: idx + 1,
+      total: ids.length,
+      cards: hand.filter(c => gid(c) === id)
+    }))
+    .filter(g => g.cards.some(c => !c.isSelected) && selected.some(c => gid(c) !== g.groupId));
+}
+
+/**
  * Updates action buttons visibility based on card selection and turn state.
  *
  * @param {Array} hand - Player's hand
@@ -352,7 +377,13 @@ function updateActionButtons(hand) {
   const unselectBtn = document.getElementById('unselectBtn');
   const discardBtn = document.getElementById('discardBtn');
   const declareBtn = document.getElementById('declareBtn');
+  const addToGroupBtn = document.getElementById('addToGroupBtn');
   const selectedCards = hand ? hand.filter(c => c.isSelected) : [];
+
+  if (addToGroupBtn) {
+    addToGroupBtn.style.display =
+      (selectedCards.length >= 1 && isUserTurn && getAddToGroupTargets(hand).length > 0) ? 'block' : 'none';
+  }
 
   if (unselectBtn) {
     unselectBtn.style.display = (selectedCards.length > 0) ? 'block' : 'none';
@@ -1115,6 +1146,23 @@ function refreshHandStatus(context) {
   return { text: parts.join(' '), eligible: !!option };
 }
 
+/**
+ * The Auto Arrange button does two things in turn (autoArrangeState 0 -> 1 -> 0).
+ * Its label always says what the NEXT press will do. Short visible text for sighted
+ * users, full description in aria-label for screen readers.
+ */
+function updateAutoArrangeButtonLabel() {
+  const btn = document.getElementById('autoArrangeBtn');
+  if (!btn) return;
+  if (autoArrangeState === 0) {
+    btn.textContent = 'Line';
+    btn.setAttribute('aria-label', 'Auto Arrange: put all cards in one line');
+  } else {
+    btn.textContent = 'Suits';
+    btn.setAttribute('aria-label', 'Auto Arrange: group cards by suit');
+  }
+}
+
 // State for touch and pen pointer drag-and-drop
 let activePointerDrag = null;
 let suppressNextCardClick = false;
@@ -1179,6 +1227,7 @@ function renderPlayerHand(hand) {
 
   playerHandEl.innerHTML = '';
   updateActionButtons(hand);
+  updateAutoArrangeButtonLabel();
 
   // 1. Group the card objects by their group property
   const groupMap = new Map();
@@ -1718,6 +1767,177 @@ function loadGameState() {
   }
 }
 
+// ---------- Add to Group (modal dialog) ----------
+function closeAddToGroupDialog() {
+  const dlg = document.getElementById('addToGroupDialog');
+  if (dlg && dlg.open) dlg.close();
+}
+
+/**
+ * Sort key used to place a card inside a group: rank order (Ace counts high when the group
+ * has a King and no 2, the same rule as sequenceToSpeech), then suit order. Jokers go last.
+ */
+function addToGroupSortKey(card, aceHigh) {
+  if (card.isJoker) return 1000;
+  let v = rankOrder[card.rank] ?? 0;
+  if (v === 1 && aceHigh) v = 14;
+  return v * 10 + (suitOrder[card.suit] ?? 9);
+}
+
+/**
+ * Works out where the selected cards would land inside a group. It does NOT change the hand.
+ * Each selected card is placed "before" or "after" a card of that group with the existing
+ * moveCardsInHand(): the cards already in the group keep their order, and every new card
+ * lands in rank order.
+ *
+ * @param {Array} hand - Player's hand
+ * @param {number} groupId - Target group
+ * @returns {{hand:Array, groupCards:Array}|null} The hand after the move and the group's cards in order
+ */
+function planAddToGroup(hand, groupId) {
+  const gid = (c) => (typeof c.group === 'number' ? c.group : 0);
+  const movers = hand.filter(c => c.isSelected)
+    .sort((a, b) => addToGroupSortKey(a, false) - addToGroupSortKey(b, false));
+  if (movers.length === 0) return null;
+
+  const placed = new Set();
+  let working = hand;
+  for (const mover of movers) {
+    // Anchors: cards of the group that stay where they are (or were already placed)
+    const anchors = working.filter(c =>
+      gid(c) === groupId && c.id !== mover.id && (!c.isSelected || placed.has(c.id)));
+    if (anchors.length === 0) return null;
+
+    const pool = [...anchors, mover];
+    const aceHigh = pool.some(c => c.rank === 'King') && !pool.some(c => c.rank === '2');
+    const key = addToGroupSortKey(mover, aceHigh);
+    const firstBigger = anchors.find(c => addToGroupSortKey(c, aceHigh) > key);
+    const target = firstBigger
+      ? { type: 'card', cardId: firstBigger.id, position: 'before' }
+      : { type: 'card', cardId: anchors[anchors.length - 1].id, position: 'after' };
+
+    const res = moveCardsInHand(working, [mover.id], target);
+    if (!res.success) return null;
+    working = res.hand;
+    placed.add(mover.id);
+  }
+  return { hand: working, groupCards: working.filter(c => gid(c) === groupId) };
+}
+
+/** Plain-language sentence for screen readers: where the selected cards will go. */
+function describeAddPlacement(plan, movedIds) {
+  const g = plan.groupCards;
+  if (movedIds.length !== 1) {
+    return 'Result: ' + g.map(c => c.displayName).join(', ') + '.';
+  }
+  const i = g.findIndex(c => c.id === movedIds[0]);
+  if (i === -1) return '';
+  const me = g[i].displayName;
+  if (i === 0) return me + ' will go first, before ' + g[1].displayName + '.';
+  if (i === g.length - 1) return me + ' will go last, after ' + g[i - 1].displayName + '.';
+  return me + ' will go between ' + g[i - 1].displayName + ' and ' + g[i + 1].displayName + '.';
+}
+
+/** Opens the modal that shows the groups (as real cards) the selected cards can be added to. */
+function openAddToGroupDialog() {
+  const dlg = document.getElementById('addToGroupDialog');
+  const listEl = document.getElementById('addToGroupList');
+  const titleEl = document.getElementById('addToGroupTitle');
+  if (!dlg || !listEl || !titleEl || typeof dlg.showModal !== 'function') return;
+  if (!isUserTurn) {
+    announce('It is not your turn yet.');
+    return;
+  }
+
+  const selected = currentUserHand.filter(c => c.isSelected);
+  const selectedIds = selected.map(c => c.id);
+  const targets = getAddToGroupTargets(currentUserHand);
+
+  const choices = [];
+  targets.forEach((t) => {
+    const plan = planAddToGroup(currentUserHand, t.groupId);
+    if (plan) choices.push({ t, plan });
+  });
+  if (selected.length === 0 || choices.length === 0) {
+    announce('There is no group to add the selected cards to.');
+    return;
+  }
+
+  const selectedNames = selected.length <= 3
+    ? selected.map(c => c.displayName).join(', ')
+    : selected.length + ' selected cards';
+  titleEl.textContent = 'Add ' + selectedNames + ' to which group?';
+
+  listEl.innerHTML = '';
+  choices.forEach(({ t, plan }) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'group-choice';
+    btn.dataset.groupId = String(t.groupId);
+    // The picture is hidden from screen readers; aria-label is what gets read for this button
+    btn.setAttribute('aria-label',
+      'Group ' + t.number + ' of ' + t.total + ', ' +
+      t.cards.length + (t.cards.length === 1 ? ' card' : ' cards') + ': ' +
+      t.cards.map(c => c.displayName).join(', ') + '. ' +
+      describeAddPlacement(plan, selectedIds));
+
+    const label = document.createElement('span');
+    label.className = 'group-choice-label';
+    label.setAttribute('aria-hidden', 'true');
+    label.textContent = 'Group ' + t.number;
+    btn.appendChild(label);
+
+    // Real cards, shown the way they will look after the move (new cards are highlighted)
+    const row = document.createElement('span');
+    row.className = 'mini-hand';
+    row.setAttribute('aria-hidden', 'true');
+    plan.groupCards.forEach((c) => {
+      const cardEl = document.createElement('div');
+      cardEl.className = 'card';
+      if (selectedIds.includes(c.id)) cardEl.classList.add('incoming');
+      cardEl.innerHTML = renderCardHTML(c, cardEl);
+      row.appendChild(cardEl);
+    });
+    btn.appendChild(row);
+
+    btn.addEventListener('click', () => addSelectedCardsToGroup(t.groupId));
+    listEl.appendChild(btn);
+  });
+
+  dlg.showModal();
+  titleEl.focus();
+}
+
+/** Moves the selected cards into the chosen group (in rank order), closes the modal, announces the result. */
+function addSelectedCardsToGroup(groupId) {
+  const selectedCards = currentUserHand.filter(c => c.isSelected);
+  const selectedIds = selectedCards.map(c => c.id);
+  const movedNames = selectedCards.map(c => c.displayName).join(', ');
+
+  const plan = planAddToGroup(currentUserHand, groupId);
+  closeAddToGroupDialog();
+  if (!plan) {
+    announce('The cards could not be added to that group.');
+    return;
+  }
+
+  currentUserHand = plan.hand;
+  currentUserHand.forEach(c => { c.isSelected = false; });
+
+  const groupCardNames = currentUserHand
+    .filter(c => c.group === groupId)
+    .map(c => c.displayName)
+    .join(', ');
+
+  announce('Moved ' + movedNames + ' to ' + describeGroupPosition(currentUserHand, groupId) +
+    '. Cards in this group: ' + groupCardNames);
+  renderPlayerHand(currentUserHand);
+  saveGameState();
+
+  const elToFocus = document.querySelector(`[data-card-id="${selectedIds[0]}"]`);
+  if (elToFocus) elToFocus.focus();
+}
+
 let idleTimer = null;
 
 /**
@@ -1855,7 +2075,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         autoArrangeState = 1;
         renderPlayerHand(currentUserHand);
-        announce('Cards sorted');
+        announce('Cards sorted in one line. Press Auto Arrange again to group them by suit.');
       } else if (autoArrangeState === 1) {
         // State 1 -> 0: Sort by Suit then Rank, group by Suit (Spades=1, Hearts=2, Clubs=3, Diamonds=4, Jokers=5)
         sortHand(currentUserHand);
@@ -1871,7 +2091,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         autoArrangeState = 0;
         renderPlayerHand(currentUserHand);
-        announce('Cards grouped by suit');
+        announce('Cards grouped by suit. Press Auto Arrange again to put them in one line.');
       }
     });
   }
@@ -1926,6 +2146,26 @@ document.addEventListener('DOMContentLoaded', () => {
         updateActionButtons(currentUserHand);
         announce('Selection cleared');
       }
+    });
+  }
+
+  // Add to Group button + modal
+  const addToGroupBtn = document.getElementById('addToGroupBtn');
+  const addToGroupDialog = document.getElementById('addToGroupDialog');
+  const addToGroupCancel = document.getElementById('addToGroupCancel');
+  if (addToGroupBtn) {
+    addToGroupBtn.addEventListener('click', openAddToGroupDialog);
+  }
+  if (addToGroupCancel) {
+    addToGroupCancel.addEventListener('click', () => {
+      closeAddToGroupDialog();
+      announce('Cancelled. Your cards are still selected.');
+    });
+  }
+  if (addToGroupDialog) {
+    // Escape key: the browser closes the dialog and returns focus to the Add button
+    addToGroupDialog.addEventListener('cancel', () => {
+      announce('Cancelled. Your cards are still selected.');
     });
   }
 

@@ -99,11 +99,12 @@
 
       <div id="actionButtons" class="action-buttons">
         <button id="exitBtn" type="button" class="primary-btn exit-btn" aria-label="Exit Game">Exit</button>
-        <button id="autoArrangeBtn" type="button" class="primary-btn" aria-label="Auto Arrange Cards">Auto Arrange</button>
-        <button id="unselectBtn" type="button" class="primary-btn" aria-label="Unselect all cards" style="display:none">Unselect All</button>
-        <button id="groupBtn" type="button" class="primary-btn" aria-label="Group selected cards" style="display:none">Group</button>
-        <button id="declareBtn" type="button" class="primary-btn" aria-label="Declare Hand" style="display:none">Declare</button>
-        <button id="discardBtn" type="button" class="primary-btn" aria-label="Discard Selected Card" style="display:none">Discard</button>
+        <button id="autoArrangeBtn" type="button" class="primary-btn auto-arrange-btn" aria-label="Auto Arrange: put all cards in one line">Line</button>
+        <button id="unselectBtn" type="button" class="primary-btn unselect-btn" aria-label="Clear selection. Unselect all cards" style="display:none">Clear</button>
+        <button id="groupBtn" type="button" class="primary-btn group-btn" aria-label="Group selected cards" style="display:none">Group</button>
+        <button id="addToGroupBtn" type="button" class="primary-btn add-to-group-btn" aria-label="Add selected cards to an existing group" style="display:none">Add</button>
+        <button id="declareBtn" type="button" class="primary-btn declare-btn" aria-label="Declare Hand" style="display:none">Decl</button>
+        <button id="discardBtn" type="button" class="primary-btn discard-btn" aria-label="Discard Selected Card" style="display:none">Disc</button>
       </div>
     </section>
 
@@ -117,6 +118,13 @@
       </div>
     </section>
   </main>
+
+  <!-- ADD TO GROUP (modal): opened by #addToGroupBtn -->
+  <dialog id="addToGroupDialog" class="group-dialog" aria-labelledby="addToGroupTitle">
+    <h2 id="addToGroupTitle" class="group-dialog-title" tabindex="-1"></h2>
+    <div id="addToGroupList" class="group-dialog-list"></div>
+    <button id="addToGroupCancel" type="button" class="primary-btn" aria-label="Cancel. Close without adding">Cancel</button>
+  </dialog>
 
   <script type="module" src="main.js"></script>
 </body>
